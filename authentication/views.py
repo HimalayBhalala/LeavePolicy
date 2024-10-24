@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from .models import *
 from .serializers import *
 from functionality.jsonrenderer import JsonRenderer
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # Create your views here.
 
@@ -27,6 +28,39 @@ class RegisterView(APIView):
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
     
+        except Exception as e:
+            return Response({
+                "message":str(e),
+                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
+            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class LoginView(APIView):
+    
+    def get(self,request, *args, **kwargs):
+        
+        email = request.data.get('email')
+        password = request.data.get('password')
+        role = request.data.get('role')
+          
+        serializer_data = LoginSerializer(request.data)
+        
+        try:                
+            user = User.objects.filter(email=email,role=role).first()
+            
+            print(user.check_password(password))    
+                            
+            return Response({
+                "message":serializer_data.data,
+                "status":status.HTTP_200_OK
+            },status=status.HTTP_200_OK)
+                 
+        except User.DoesNotExist:
+            return Response({
+                "message":"User Does not exists",
+                "status":status.HTTP_204_NO_CONTENT
+            },status=status.HTTP_204_NO_CONTENT)        
+            
         except Exception as e:
             return Response({
                 "message":str(e),
