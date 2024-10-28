@@ -3,28 +3,19 @@ from .models import *
 import re
 
 class UserSerializer(serializers.ModelSerializer):
-    confirm_password = serializers.SerializerMethodField()
-    
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
     class Meta:
         model = User
-        fields = ["id","email","first_name","last_name","password","confirm_password"]
-        extra_kwargs = {
-            "username" : {"read_only":True},
-            "password" : {"write_only":True},
-            "confirm_password" : {"write_only":True}
-            }
-    
+        fields = ["id","email","first_name","last_name","password","confirm_password","role"]
+
     def validate(self, attrs):
         password = attrs.get('password')
         confirm_password = attrs.get('confirm_password')
-        role = attrs.get('role')
         
-        if not role:
-            raise serializers.ValidationError({"role" : "User Role must be required"})
-        
-        if not re.search(['A-Z'],password) == None and re.search(['a-z'],password) == None and re.search(['0-9'],password) == None and len(password) < 8:
-            raise serializers.ValidationError({"password":"Password Must be Strong atleast 8 digit is required included digit is a number and character"})
-        
+        if len(password) < 8:
+            raise serializers.ValidationError({"password":"Password contains atleast 8 digits"})
+
         if not confirm_password:
             raise serializers.ValidationError({"confirm_password" : "Confirm Password is required"})
 
@@ -35,15 +26,13 @@ class UserSerializer(serializers.ModelSerializer):
     
         
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
-    
-    
-class LoginSerializer(serializers.ModelSerializer):
-    password = serializers.SerializerMethodField()
-    class Meta:
-        model = User
-        fields = ["email","password"]
-        
-    def get_password(self,obj):
-        print(obj)
-        pass
+        validated_data.pop('confirm_password')
+
+        user = User.objects.create_user(**validated_data)
+        if user.role == 'admin':
+            user.is_superuser=True
+            user.is_staff = True
+        elif user.role == 'hr':
+            user.is_staff=True
+        user.save()
+        return user

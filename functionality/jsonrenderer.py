@@ -1,22 +1,19 @@
-from rest_framework import renderers
-import json
-
-
-class JsonRenderer(renderers.BaseRenderer):
-
-    charset = "utf-8"
-    media_type = "application/json"
+from rest_framework.renderers import JSONRenderer
+import json 
+class NewJSONRenderer(JSONRenderer):
     
+    charset = 'utf-8'
+ 
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        print(str(data['message']))
-        response = ''
-        if 'ErrorDetail' in str([data['message']]):
-            response = json.dumps(
-                    {
-                        "message" : data['message'],
-                        "status" : data['status']
-                    },
-                )
+        if 'ErrorDetail' in str(data):
+            response = json.dumps({
+                "message" : str(data['message']),
+                "status" : str(data['status'])
+                })
         else:
-            response = json.dumps(data)
+            response = json.dumps(str(data))
+ 
+        if 'non_field_errors' in data:
+            response['non_field_errors'] = data['non_field_errors']
+        
         return response
