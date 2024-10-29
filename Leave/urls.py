@@ -20,5 +20,6 @@ from django.urls import path,include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('',include('authentication.urls')),
-    path('leave/',include('policy.urls'))
+    path('leave/',include('leavepolicyrules.urls')),
+    path('leave-policy/',include('policy.urls'))
 ]

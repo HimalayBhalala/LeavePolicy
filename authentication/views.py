@@ -4,9 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import *
 from .serializers import *
-from functionality.jsonrenderer import NewJSONRenderer
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from rest_framework.exceptions import ValidationError
 
 # Create your views here.
 
@@ -19,13 +18,11 @@ def get_token_for_user(user):
     }
 
 class RegisterView(APIView):
-    
-    # renderer_classes = [NewJSONRenderer]/
-    
+        
     def post(self,request,*args,**kwargs):
         try:
             serializer_data = UserSerializer(data=request.data)
-            if serializer_data.is_valid():
+            if serializer_data.is_valid(raise_exception=True):
                 user = serializer_data.save()
 
                 token = get_token_for_user(user)
@@ -37,11 +34,12 @@ class RegisterView(APIView):
                     "status" : status.HTTP_201_CREATED
                 },status=status.HTTP_201_CREATED)
             
+        except ValidationError as e:
             return Response({
-                "message":serializer_data.errors,
+                "message":e.detail,
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
-            
+
         except Exception as e:
             return Response({
                 "message":str(e),
