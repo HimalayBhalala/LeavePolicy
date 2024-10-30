@@ -1,48 +1,38 @@
 from django.shortcuts import render
 from rest_framework import status
-from rest_framework.views import APIView 
 from functionality.jwt_authentication import JWTAuthentication
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from .models import *
 from .serializers import *
-from rest_framework.exceptions import ValidationError
-
-
-# Create your views here.
+from functionality.LeaveView import BaseAPIView
+from functionality.jsonrenderers import LeaveJsonRenderer
 
 # Leave Type Views
-class LeaveTypeView(APIView):
+class LeaveTypeView(BaseAPIView):
 
-    permission_classes = [JWTAuthentication,IsAdminUser]
+    renderer_classes = [LeaveJsonRenderer]
+    permission_classes = [JWTAuthentication]
 
     def post(self,request,*args, **kwargs):
 
-        try:
-            user = request.user
-            serializer_data = LeaveTypeSerializer(data=request.data,context={'user':user})
-
-            if serializer_data.is_valid(raise_exception=True):
-                serializer_data.save()
-
-                return Response({
-                    "message":"LeaveType added Successfully...",
-                    "data":serializer_data.data,
-                    "status":status.HTTP_201_CREATED
-                },status=status.HTTP_201_CREATED)
-                
-        except ValidationError as e:
+        user = request.user
+        if not user.role in ['admin','hr']:
             return Response({
-                "message": e.detail,
-                "status": status.HTTP_400_BAD_REQUEST
-            }, status=status.HTTP_400_BAD_REQUEST)
+                "message":"Only admin and Hr can be able to update a leave status",
+                "status":status.HTTP_400_BAD_REQUEST
+            },status=status.HTTP_400_BAD_REQUEST)
 
-        except Exception as e:
+        serializer_data = LeaveTypeSerializer(data=request.data,context={'user':user})
+
+        if serializer_data.is_valid(raise_exception=True):
+            serializer_data.save()
+
             return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+                "message":"LeaveType added Successfully...",
+                "data":serializer_data.data,
+                "status":status.HTTP_201_CREATED
+            },status=status.HTTP_201_CREATED)
+    
     def put(self,request,*args, **kwargs):
         id = self.kwargs.get('pk',None)
         if not id:
@@ -52,36 +42,33 @@ class LeaveTypeView(APIView):
             },status=status.HTTP_400_BAD_REQUEST)
         user = request.user
 
-        try:        
-            get_data = LeaveType.objects.filter(user=user,id=id).first()
-            if not get_data:
-                return Response({
-                    "message":"Data not found",
-                    "data":[],
-                    "status":status.HTTP_204_NO_CONTENT
-                },status=status.HTTP_204_NO_CONTENT)
-
-            serializer_data = LeaveTypeSerializer(get_data,data=request.data,partial=True)
-            if serializer_data.is_valid(raise_exception=True):
-                serializer_data.save()
-
-                return Response({
-                    "message":"Leave Type updated Successfully...",
-                    "data":serializer_data.data,
-                    "status":status.HTTP_200_OK
-                },status=status.HTTP_200_OK)
-
-        except ValidationError as e:
+        if not user.role in ['admin','hr']:
             return Response({
-                "message":e.detail,
+                "message":"Only admin and Hr can be able to update a leave status",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
+
+
+        get_data = LeaveType.objects.filter(user=user,id=id).first()
+
+        if not get_data:
             return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+                "message":"Data not found",
+                "data":[],
+                "status":status.HTTP_204_NO_CONTENT
+            },status=status.HTTP_204_NO_CONTENT)
+
+        serializer_data = LeaveTypeSerializer(get_data,data=request.data,partial=True)
+        if serializer_data.is_valid(raise_exception=True):
+            serializer_data.save()
+
+            return Response({
+                "message":"Leave Type updated Successfully...",
+                "data":serializer_data.data,
+                "status":status.HTTP_200_OK
+            },status=status.HTTP_200_OK)
+
+     
     def delete(self,request,*args, **kwargs):
 
         id = self.kwargs.get('pk',None)
@@ -90,85 +77,75 @@ class LeaveTypeView(APIView):
                 "message":"Id is required in URl",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)        
+        
         user = request.user
-
-        try:        
-            get_data = LeaveType.objects.filter(user=user,id=id).first()
-
-            if not get_data:
-                return Response({
-                    "message":"Data not found",
-                    "data":[],
-                    "status":status.HTTP_204_NO_CONTENT
-                },status=status.HTTP_204_NO_CONTENT)
-            
-            get_data.delete()
-
+      
+        if not user.role in ['admin','hr']:
             return Response({
-                "message":"Leave Type deleted successfully....",
+                "message":"Only admin and Hr can be able to update a leave status",
+                "status":status.HTTP_400_BAD_REQUEST
+            },status=status.HTTP_400_BAD_REQUEST)
+
+
+        get_data = LeaveType.objects.filter(user=user,id=id).first()
+
+        if not get_data:
+            return Response({
+                "message":"Data not found",
                 "data":[],
                 "status":status.HTTP_204_NO_CONTENT
             },status=status.HTTP_204_NO_CONTENT)
+        
+        get_data.delete()
+
+        return Response({
+            "message":"Leave Type deleted successfully....",
+            "data":[],
+            "status":status.HTTP_204_NO_CONTENT
+        },status=status.HTTP_204_NO_CONTENT)
       
-        except Exception as e:
-            return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+class GetAllLeaveTypeView(BaseAPIView):
 
-class GetAllLeaveTypeView(APIView):
-
+    renderer_classes = [LeaveJsonRenderer]
     """ Get a all Leave Type"""
 
     def get(self,request,*args, **kwargs):
-        try:
-            data = LeaveType.objects.all()
-            serialize_data = LeaveTypeSerializer(data,many=True)
-            return Response({
-                "message":"Leave Type getted successfully....",
-                "data":serialize_data.data,
-                "status":status.HTTP_200_OK
-            },status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+        data = LeaveType.objects.all()
+        serialize_data = LeaveTypeSerializer(data,many=True)
+        return Response({
+            "message":"Leave Type getted successfully....",
+            "data":serialize_data.data,
+            "status":status.HTTP_200_OK
+        },status=status.HTTP_200_OK)
 
 
 # Leave Reason Views
 
-class LeaveReasonView(APIView):
+class LeaveReasonView(BaseAPIView):
 
-    permission_classes = [JWTAuthentication,IsAdminUser]
+    renderer_classes = [LeaveJsonRenderer]
+    permission_classes = [JWTAuthentication]
 
     def post(self,request,*args, **kwargs):
-        try:
-            user = request.user
-                
-            serializer_data = LeaveReasonSerializer(data=request.data,context={'user':user})
-            if serializer_data.is_valid(raise_exception=True):
-                serializer_data.save()
+        user = request.user
 
-                return Response({
-                    "message":"LeaveReason Added Successfully...",
-                    "data":serializer_data.data,
-                    "status":status.HTTP_201_CREATED
-                },status=status.HTTP_201_CREATED)
-
-        except ValidationError as e:
+        if not user.role in ['admin','hr']:
             return Response({
-                "message":e.detail,
+                "message":"Only admin and Hr can be able to update a leave status",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
 
-        except Exception as e:
-            raise Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
+        serializer_data = LeaveReasonSerializer(data=request.data,context={'user':user})
+        if serializer_data.is_valid(raise_exception=True):
+            serializer_data.save()
+
+            return Response({
+                "message":"LeaveReason Added Successfully...",
+                "data":serializer_data.data,
+                "status":status.HTTP_201_CREATED
+            },status=status.HTTP_201_CREATED)
+
 
     def put(self,request,*args, **kwargs):
         id = self.kwargs.get('pk',None)
@@ -177,38 +154,33 @@ class LeaveReasonView(APIView):
                 "message":"Id is required in URl",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
+        
         user = request.user
 
-        try:        
-            get_data = LeaveReason.objects.filter(user=user,id=id).first()
-            if not get_data:
-                return Response({
-                    "message":"Data not found",
-                    "data":[],
-                    "status":status.HTTP_204_NO_CONTENT
-                },status=status.HTTP_204_NO_CONTENT)
-
-            serializer_data = LeaveReasonSerializer(get_data,data=request.data,partial=True)
-            if serializer_data.is_valid(raise_exception=True):
-                serializer_data.save()
-
-                return Response({
-                    "message":"Leave Reason updated Successfully...",
-                    "data":serializer_data.data,
-                    "status":status.HTTP_200_OK
-                },status=status.HTTP_200_OK)
-
-        except ValidationError as e:
+        if not user.role in ['admin','hr']:
             return Response({
-                "message":e.detail,
+                "message":"Only admin and Hr can be able to update a leave status",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
+
+        get_data = LeaveReason.objects.filter(user=user,id=id).first()
+        if not get_data:
             return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+                "message":"Data not found",
+                "data":[],
+                "status":status.HTTP_204_NO_CONTENT
+            },status=status.HTTP_204_NO_CONTENT)
+
+        serializer_data = LeaveReasonSerializer(get_data,data=request.data,partial=True)
+        if serializer_data.is_valid(raise_exception=True):
+            serializer_data.save()
+
+            return Response({
+                "message":"Leave Reason updated Successfully...",
+                "data":serializer_data.data,
+                "status":status.HTTP_200_OK
+            },status=status.HTTP_200_OK)
+
     def delete(self,request,*args, **kwargs):
 
         id = self.kwargs.get('pk',None)
@@ -221,84 +193,68 @@ class LeaveReasonView(APIView):
         
         user = request.user
 
-        try:        
-            get_data = LeaveReason.objects.filter(user=user,id=id).first()
-
-            if not get_data:
-                return Response({
-                    "message":"Data not found",
-                    "data":[],
-                    "status":status.HTTP_204_NO_CONTENT
-                },status=status.HTTP_204_NO_CONTENT)
-            
-            get_data.delete()
-
+        if not user.role in ['admin','hr']:
             return Response({
-                "message":"Leave Reason deleted successfully....",
+                "message":"Only admin and Hr can be able to update a leave status",
+                "status":status.HTTP_400_BAD_REQUEST
+            },status=status.HTTP_400_BAD_REQUEST)
+
+        get_data = LeaveReason.objects.filter(user=user,id=id).first()
+
+        if not get_data:
+            return Response({
+                "message":"Data not found",
                 "data":[],
                 "status":status.HTTP_204_NO_CONTENT
             },status=status.HTTP_204_NO_CONTENT)
-      
-        except Exception as e:
-            return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        get_data.delete()
 
+        return Response({
+            "message":"Leave Reason deleted successfully....",
+            "data":[],
+            "status":status.HTTP_204_NO_CONTENT
+        },status=status.HTTP_204_NO_CONTENT)
+    
+class GetAllLeaveReasonView(BaseAPIView):
 
-class GetAllLeaveReasonView(APIView):
+    renderer_classes = [LeaveJsonRenderer]
 
     """ Get a all Leave Reason"""
 
     def get(self,request,*args, **kwargs):
-        try:
-            data = LeaveReason.objects.all()
-            serialize_data = LeaveReasonSerializer(data,many=True)
-            return Response({
-                "message":"Leave Reason getted successfully....",
-                "data":serialize_data.data,
-                "status":status.HTTP_200_OK
-            },status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+        data = LeaveReason.objects.all()
+        serialize_data = LeaveReasonSerializer(data,many=True)
+        return Response({
+            "message":"Leave Reason getted successfully....",
+            "data":serialize_data.data,
+            "status":status.HTTP_200_OK
+        },status=status.HTTP_200_OK)
 
 # Leave Rule Views
+class LeaveRuleView(BaseAPIView):
 
-
-class LeaveRuleView(APIView):
-
-    permission_classes = [JWTAuthentication,IsAdminUser]
+    renderer_classes = [LeaveJsonRenderer]
+    permission_classes = [JWTAuthentication]
 
     def post(self,request,*args, **kwargs):
-        try:
-            user = request.user
-                
-            serializer_data = LeaveRuleSerializer(data=request.data,context={'user':user})
-            if serializer_data.is_valid(raise_exception=True):
-                serializer_data.save()
+        user = request.user
 
-                return Response({
-                    "message" : "LeaveRule Added Successfully...",
-                    "data":serializer_data.data,
-                    "status":status.HTTP_201_CREATED
-                },status=status.HTTP_201_CREATED)
-
-        except ValidationError as e:
+        if not user.role in ['admin','hr']:
             return Response({
-                "message":e.detail,
+                "message":"Only admin and Hr can be able to update a leave status",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
+            
+        serializer_data = LeaveRuleSerializer(data=request.data,context={'user':user})
+        if serializer_data.is_valid(raise_exception=True):
+            serializer_data.save()
 
-        except Exception as e:
-            raise Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+            return Response({
+                "message" : "LeaveRule Added Successfully...",
+                "data":serializer_data.data,
+                "status":status.HTTP_201_CREATED
+            },status=status.HTTP_201_CREATED)
 
     def put(self,request,*args, **kwargs):
         id = self.kwargs.get('pk',None)
@@ -309,36 +265,31 @@ class LeaveRuleView(APIView):
             },status=status.HTTP_400_BAD_REQUEST)
         user = request.user
 
-        try:        
-            get_data = LeaveRule.objects.filter(user=user,id=id).first()
-            if not get_data:
-                return Response({
-                    "message":"Data not found",
-                    "data":[],
-                    "status":status.HTTP_204_NO_CONTENT
-                },status=status.HTTP_204_NO_CONTENT)
-
-            serializer_data = LeaveRuleSerializer(get_data,data=request.data,partial=True)
-            if serializer_data.is_valid(raise_exception=True):
-                serializer_data.save()
-
-                return Response({
-                    "message":"Leave Rule updated Successfully...",
-                    "data":serializer_data.data,
-                    "status":status.HTTP_200_OK
-                },status=status.HTTP_200_OK)
-
-        except ValidationError as e:
+        if not user.role in ['admin','hr']:
             return Response({
-                "message":e.detail,
+                "message":"Only admin and Hr can be able to update a leave status",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+        get_data = LeaveRule.objects.filter(user=user,id=id).first()
+        if not get_data:
+            return Response({
+                "message":"Data not found",
+                "data":[],
+                "status":status.HTTP_204_NO_CONTENT
+            },status=status.HTTP_204_NO_CONTENT)
+
+        serializer_data = LeaveRuleSerializer(get_data,data=request.data,partial=True)
+        if serializer_data.is_valid(raise_exception=True):
+            serializer_data.save()
+
+            return Response({
+                "message":"Leave Rule updated Successfully...",
+                "data":serializer_data.data,
+                "status":status.HTTP_200_OK
+            },status=status.HTTP_200_OK)
+
+
     def delete(self,request,*args, **kwargs):
 
         id = self.kwargs.get('pk',None)
@@ -351,49 +302,42 @@ class LeaveRuleView(APIView):
         
         user = request.user
 
-        try:        
-            get_data = LeaveRule.objects.filter(user=user,id=id).first()
-
-            if not get_data:
-                return Response({
-                    "message":"Data not found",
-                    "data":[],
-                    "status":status.HTTP_204_NO_CONTENT
-                },status=status.HTTP_204_NO_CONTENT)
-            
-            get_data.delete()
-
+        if not user.role in ['admin','hr']:
             return Response({
-                "message":"Leave Rule deleted successfully....",
+                "message":"Only admin and Hr can be able to update a leave status",
+                "status":status.HTTP_400_BAD_REQUEST
+            },status=status.HTTP_400_BAD_REQUEST)
+
+        get_data = LeaveRule.objects.filter(user=user,id=id).first()
+
+        if not get_data:
+            return Response({
+                "message":"Data not found",
                 "data":[],
                 "status":status.HTTP_204_NO_CONTENT
             },status=status.HTTP_204_NO_CONTENT)
-      
-        except Exception as e:
-            return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+        get_data.delete()
 
-class GetAllLeaveRuleView(APIView):
+        return Response({
+            "message":"Leave Rule deleted successfully....",
+            "data":[],
+            "status":status.HTTP_204_NO_CONTENT
+        },status=status.HTTP_204_NO_CONTENT)
+
+class GetAllLeaveRuleView(BaseAPIView):
+
+    renderer_classes = [LeaveJsonRenderer]
 
     """ Get a all Leave Rules"""
 
     def get(self,request,*args, **kwargs):
-        try:
-            data = LeaveRule.objects.all()
-            serialize_data = LeaveRuleSerializer(data,many=True)
-            return Response({
-                "message":"Leave Rule getted successfully....",
-                "data":serialize_data.data,
-                "status":status.HTTP_200_OK
-            },status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+        data = LeaveRule.objects.all()
+        serialize_data = LeaveRuleSerializer(data,many=True)
+        return Response({
+            "message":"Leave Rule getted successfully....",
+            "data":serialize_data.data,
+            "status":status.HTTP_200_OK
+        },status=status.HTTP_200_OK)
         
 

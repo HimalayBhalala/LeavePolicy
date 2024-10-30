@@ -2,22 +2,28 @@ from rest_framework.permissions import BasePermission
 import jwt
 from django.conf import settings
 from authentication.models import User
+from rest_framework import status
+from rest_framework.exceptions import AuthenticationFailed
 
 class JWTAuthentication(BasePermission):
     
     @staticmethod
     def decode_token_for_user(token):
         try:
-            print("Helo")
             decode_token = jwt.decode(token, key=settings.SIMPLE_JWT['SIGNING_KEY'], algorithms=settings.SIMPLE_JWT['ALGORITHM'])
             return decode_token['user_id']
         except jwt.ExpiredSignatureError:
             print("Token has expired.")
-            return None
+            raise AuthenticationFailed({
+                "message": "Token has been expired",
+                "status": status.HTTP_401_UNAUTHORIZED
+            })
         except jwt.InvalidTokenError as e:
             print(f"Invalid token: {e}")
-            return None
-
+            raise AuthenticationFailed({
+                "message": "Invalid token",
+                "status": status.HTTP_401_UNAUTHORIZED
+            })
 
     def authenticate(self,request):
         auth_token = request.headers.get('Authorization')

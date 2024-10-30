@@ -2,76 +2,75 @@ from django.shortcuts import render
 from rest_framework import status
 from .models import *
 from .serializers import LeaveRequestSerializer,LeaveRequestStatusUpdateSerializer
-from rest_framework.views import APIView
 from functionality.jwt_authentication import JWTAuthentication
-from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
+from functionality.handle_exception import *
+from functionality.jsonrenderers import LeaveJsonRenderer
+from functionality.LeaveView import BaseAPIView
+from rest_framework.views import APIView
+from django.db.models import Q
+from datetime import timedelta,datetime
+from django.utils import timezone
 
-class LeaveRequestView(APIView):
+class LeaveRequestView(BaseAPIView):
 
+    renderer_classes = [LeaveJsonRenderer]
     permission_classes = [JWTAuthentication]
     
     def post(self,request,*args, **kwargs):
         user = request.user
-        try:
-            serializer_data = LeaveRequestSerializer(data=request.data,context={'user':user})
-            if serializer_data.is_valid(raise_exception=True):
-                serializer_data.save()
-                return Response({
-                    "message":"Request Sent Successfully",
-                    "data":serializer_data.data,
-                    "status":status.HTTP_201_CREATED
-                },status=status.HTTP_201_CREATED)
-
-        except ValidationError as e:
+        serializer_data = LeaveRequestSerializer(data=request.data,context={'user':user})
+        if serializer_data.is_valid(raise_exception=True):
+            serializer_data.save()
             return Response({
-                "message":e.detail,
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-        
-        except Exception as e:
-            return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+                "message":"Request Sent Successfully",
+                "data":serializer_data.data,
+                "status":status.HTTP_201_CREATED
+            },status=status.HTTP_201_CREATED)
 
-class GetAllLeaveRequestView(APIView):
-     
-     def get(self,request,*args, **kwargs):
-        try:
-            data = LeaveRequest.objects.all()
-            serialize_data = LeaveRequestSerializer(data,many=True)
-            return Response({
-                "message":"Leave Request getted successfully....",
-                "data":serialize_data.data,
-                "status":status.HTTP_200_OK
-            },status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+class GetAllLeaveRequestView(BaseAPIView):
 
-class ApprovedRequestView(APIView):
+    renderer_classes = [LeaveJsonRenderer]
+          
+    def get(self,request,*args, **kwargs):
+        data = LeaveRequest.objects.all()
+        serialize_data = LeaveRequestSerializer(data,many=True)
+        return Response({
+            "message":"Leave Request getted successfully....",
+            "data":serialize_data.data,
+            "status":status.HTTP_200_OK
+        },status=status.HTTP_200_OK)
 
-    permission_classes = [JWTAuthentication,IsAdminUser]
+class ApprovedRequestView(BaseAPIView):
+
+    renderer_classes = [LeaveJsonRenderer]
+    permission_classes = [JWTAuthentication]
 
     def put(self,request,*args, **kwargs):
         
         try:
             id = self.kwargs.get('pk',None)
             user = request.user
-
-            if not id:
+            
+            if id is None:
                 return Response({
                     "message":"Id is required in URl",
                     "status":status.HTTP_400_BAD_REQUEST
                 },status=status.HTTP_400_BAD_REQUEST)
-            
+
             get_request = LeaveRequest.objects.get(id=id)
+            
+            if not user.role in ['admin','hr']:
+                return Response({
+                    "message":"Only admin and Hr can be able to update a leave status",
+                    "status":status.HTTP_400_BAD_REQUEST
+                },status=status.HTTP_400_BAD_REQUEST)
+            elif get_request.user.role == 'hr' and not user.role == 'admin':
+                return Response({
+                    "message":"Only admin can be able to update a leave status",
+                    "status":status.HTTP_400_BAD_REQUEST
+                },status=status.HTTP_400_BAD_REQUEST)
+
             serializer_data = LeaveRequestStatusUpdateSerializer(get_request,data=request.data,context={'user':user},partial=True)
 
             if serializer_data.is_valid(raise_exception=True):
@@ -82,20 +81,61 @@ class ApprovedRequestView(APIView):
                     "status":status.HTTP_200_OK
                 },status=status.HTTP_200_OK)
             
-        except ValidationError as e:
-            return Response({
-                "message":e.detail,
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-
         except LeaveRequest.DoesNotExist:
             return Response({
                 "message":"Leave Request is not exists",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
+                "data":[],
+                "status":status.HTTP_204_NO_CONTENT
+            },status=status.HTTP_204_NO_CONTENT)
+        
 
-        except Exception as e:
-            return Response({
-                "message":str(e),
-                "status":status.HTTP_500_INTERNAL_SERVER_ERROR
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+class FilterDataView(APIView):
+
+    renderer_classes = [LeaveJsonRenderer]
+    permission_classes = [JWTAuthentication]
+
+    def get(self,request,*args, **kwargs):
+        
+        user = request.user
+
+        leave_status = request.GET.get('status',None)
+        leave_description = request.GET.get('description',None)
+        leave_type = request.GET.get('leave_type', None)
+        leave_reason = request.GET.get('leave_reason',None)
+        start_date = request.GET.get('start_date',None)
+        end_date = request.GET.get('end_date',None)
+        
+        filter_query = []
+
+        if leave_status:
+            filter_query.append(Q(status__icontains=leave_status.strip()))
+
+        if leave_description:
+            filter_query.append(Q(leave_description__icontains=leave_description.strip()))
+
+        if leave_type:
+            filter_query.append(Q(leave_type__name__icontains=leave_type.strip()))
+
+        if leave_reason:
+            filter_query.append(Q(leave_reason__reason__icontains=leave_reason.strip()))
+
+        final_formated_start_date = timezone.now() - timedelta(days=1)
+        final_formated_end_date = timezone.now()
+        
+        if start_date and end_date:
+            formated_start_date = datetime.strptime(start_date,'%d-%m-%Y')
+            formated_end_date = datetime.strptime(end_date,"%d-%m-%Y")
+
+            final_formated_start_date = formated_start_date.strftime('%Y-%m-%d')
+            final_formated_end_date = formated_end_date.strftime("%Y-%m-%d")
+
+        filter_query.append(Q(created_at__date__range=(final_formated_start_date,final_formated_end_date)))
+        
+        request_data = LeaveRequest.objects.filter(user=user,*filter_query)
+        serializer_data = LeaveRequestSerializer(request_data,many=True)
+
+        return Response({
+            "message":"Filtered data is getting successfully....",
+            "data":serializer_data.data,
+            "status":status.HTTP_200_OK
+        },status=status.HTTP_200_OK)

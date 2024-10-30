@@ -6,7 +6,10 @@ from datetime import date,timedelta
 class LeaveRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = LeaveRequest
-        fields = ["id","leave_type","custom_leave","leave_rule","leave_reason","leave_description","status","approved_by","requested_date","created_at","updated_at"]
+        fields = ["id","user","leave_type","custom_leave","leave_rule","leave_reason","leave_description","status","approved_by","requested_date","created_at","updated_at"]
+        extra_kwargs = {
+            "user":{"read_only":True}
+        }
 
     def validate(self, attrs):
         leave_type = attrs.get('leave_type')
@@ -25,13 +28,12 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
         if get_leave_reason.leave_type.id == get_leave_type.id and get_leave_reason.reason == "Custom":
             custom_leave = attrs.get('custom_leave')
             if not custom_leave:
-                raise serializers.ValidationError({"custom_leave_reason":"Custom Leave Reason is required"})
+                raise serializers.ValidationError({"custom_leave":"Custom Leave Reason is required"})
 
         if not get_leave_rule.role == user.role:
-            raise serializers.ValidationError({"role":"Add a right role"})
+            raise serializers.ValidationError({"rule":"Add a right rule"})
 
         leave_request_date = date.today() + timedelta(days=get_leave_rule.days)
-        print(leave_request_date,requested_date)
         if (get_leave_rule.role == user.role) and (leave_request_date > requested_date):
             raise serializers.ValidationError({"leave_request":"You have not able to get a leave because your request days is over"})
         
@@ -45,7 +47,11 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
 class LeaveRequestStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = LeaveRequest
-        fields = ["id","leave_type","custom_leave","leave_rule","leave_reason","leave_description","status","approved_by","requested_date","created_at","updated_at"]
+        fields = ["id","user","leave_type","custom_leave","leave_rule","leave_reason","leave_description","status","approved_by","requested_date","created_at","updated_at"]
+        extra_kwargs = {
+            "user":{"read_only":True}
+        }
+
 
     def update(self, instance, validated_data):
         instance.status = validated_data.get('status',instance.status)

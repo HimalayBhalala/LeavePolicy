@@ -8,6 +8,7 @@ class LeaveTypeSerializer(serializers.ModelSerializer):
         fields = ["id","user","name","created_at","updated_at"]
         extra_kwargs = {
             "id":{"read_only":True},
+            "user":{"read_only":True}
         }
     def validate(self, attrs):
         name = attrs.get('name')
@@ -33,6 +34,10 @@ class LeaveReasonSerializer(serializers.ModelSerializer):
     class Meta:
         model = LeaveReason
         fields = ["id","user","leave_type","reason","created_at","updated_at"]
+        extra_kwargs = {
+            "user":{"read_only":True}
+        }
+
 
     def create(self, validated_data):
         validated_data['user'] = self.context.get('user')
@@ -49,6 +54,10 @@ class LeaveRuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = LeaveRule
         fields = ["id","user","days","created_at","role","updated_at"]
+        extra_kwargs = {
+            "user":{"read_only":True}
+        }
+
 
     def create(self, validated_data):
         validated_data['user'] = self.context.get('user')
