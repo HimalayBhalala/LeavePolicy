@@ -13,19 +13,19 @@ class JWTAuthentication(BasePermission):
             decode_token = jwt.decode(token, key=settings.SIMPLE_JWT['SIGNING_KEY'], algorithms=settings.SIMPLE_JWT['ALGORITHM'])
             return decode_token['user_id']
         except jwt.ExpiredSignatureError:
-            print("Token has expired.")
             raise AuthenticationFailed({
                 "message": "Token has been expired",
-                "status": status.HTTP_401_UNAUTHORIZED
+                "status": status.HTTP_403_FORBIDDEN
             })
         except jwt.InvalidTokenError as e:
             print(f"Invalid token: {e}")
             raise AuthenticationFailed({
                 "message": "Invalid token",
-                "status": status.HTTP_401_UNAUTHORIZED
+                "status": status.HTTP_403_FORBIDDEN
             })
 
     def authenticate(self,request):
+
         auth_token = request.headers.get('Authorization')
         
         if not auth_token:

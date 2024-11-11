@@ -4,12 +4,12 @@ from rest_framework.response import Response
 from .models import *
 from .serializers import *
 from rest_framework_simplejwt.tokens import RefreshToken
-from functionality.jsonrenderers import LeaveJsonRenderer
 from functionality.LeaveView import BaseAPIView
 
 # Create your views here.
 
 def get_token_for_user(user):
+    
     token = RefreshToken.for_user(user)
 
     return {
@@ -21,17 +21,21 @@ class RegisterView(BaseAPIView):
             
     def post(self,request,*args,**kwargs):
         serializer_data = UserSerializer(data=request.data)
-        if serializer_data.is_valid(raise_exception=True):
-            user = serializer_data.save()
+        try:
+            if serializer_data.is_valid():
 
-            token = get_token_for_user(user)
+                user = serializer_data.save()
+                token = get_token_for_user(user)
 
-            return Response({
-                "message":"User Register Successfully...",
-                "data" : serializer_data.data,
-                "token" : token,
-                "status" : status.HTTP_201_CREATED
-            },status=status.HTTP_201_CREATED)
+                return Response({
+                    "message":"User Register Successfully...",
+                    "data" : serializer_data.data,
+                    "token" : token,
+                    "status" : status.HTTP_201_CREATED
+                },status=status.HTTP_201_CREATED)
+        
+        except Exception as e:
+            return Response
             
 class LoginView(BaseAPIView):
         

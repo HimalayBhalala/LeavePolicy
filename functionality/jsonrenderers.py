@@ -1,5 +1,4 @@
 from rest_framework.renderers import JSONRenderer
-from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 from rest_framework.exceptions import ErrorDetail
 
 class LeaveJsonRenderer(JSONRenderer):
@@ -16,7 +15,6 @@ class LeaveJsonRenderer(JSONRenderer):
         return data
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        
         if 'ErrorDetail' in str(data):
             formatted_data = {
                 "info": self.format_errors(data),
@@ -25,7 +23,7 @@ class LeaveJsonRenderer(JSONRenderer):
 
         elif data['status'] == 400:
             formatted_data = {
-                "error":{
+                "info":{
                     "message":data['message'],
                 },
                 "status":data['status']

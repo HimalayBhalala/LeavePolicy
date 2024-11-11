@@ -59,12 +59,13 @@ class ApprovedRequestView(BaseAPIView):
                 },status=status.HTTP_400_BAD_REQUEST)
 
             get_request = LeaveRequest.objects.get(id=id)
-            
+            print(request.data)
             if not user.role in ['admin','hr']:
                 return Response({
                     "message":"Only admin and Hr can be able to update a leave status",
                     "status":status.HTTP_400_BAD_REQUEST
                 },status=status.HTTP_400_BAD_REQUEST)
+            
             elif get_request.user.role == 'hr' and not user.role == 'admin':
                 return Response({
                     "message":"Only admin can be able to update a leave status",
@@ -139,3 +140,39 @@ class FilterDataView(APIView):
             "data":serializer_data.data,
             "status":status.HTTP_200_OK
         },status=status.HTTP_200_OK)
+
+
+
+class DeleteLeaveRequestView(BaseAPIView):
+    
+    renderer_classes = [LeaveJsonRenderer]
+    permission_classes = [JWTAuthentication]
+    
+    def delete(self,request,*args, **kwargs):
+
+        user = request.user
+        id = self.kwargs.get('pk',None)
+        user = request.user
+
+        if id is None:
+            return Response({
+                "message":"Id is required in URl",
+                "status":status.HTTP_400_BAD_REQUEST
+            },status=status.HTTP_400_BAD_REQUEST)
+        
+        get_request = LeaveRequest.objects.filter(user=user,id=id)
+        
+        if not get_request.exists():
+            return Response({
+                "message":"No Data found....",
+                "data":[],
+                "status":status.HTTP_204_NO_CONTENT
+            },status=status.HTTP_204_NO_CONTENT)
+        
+        get_request.delete()
+
+        return Response({
+            "message":"LeaveRequest deleted successfully...",
+            "data":[],
+            "status":status.HTTP_204_NO_CONTENT            
+        },status=status.HTTP_204_NO_CONTENT)
