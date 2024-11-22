@@ -1,5 +1,6 @@
 from django.db import models
 from leavepolicyrules.models import *
+from datetime import date
 
 class LeaveRequest(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
@@ -13,6 +14,8 @@ class LeaveRequest(models.Model):
     requested_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    start_date = models.DateField(default=date)
+    end_date = models.DateField()
 
     class Meta:
         verbose_name = 'leaverequest'

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import *
 import re
+from rest_framework.response import Response
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -12,9 +13,15 @@ class UserSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         password = attrs.get('password')
         confirm_password = attrs.get('confirm_password')
-        
-        if len(password) < 8:
-            raise serializers.ValidationError({"password":"Password contains atleast 8 digits"})
+        email = attrs.get('email')
+
+        get_user = User.objects.filter(email=email)
+
+        if get_user.exists():
+            return Response({"message":"User already exist with a given email"})
+
+        if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$', password):        
+            raise serializers.ValidationError({"password":"Password contains atleast 8 digits with a atleast one char, one digit and one special symbol"})
 
         if not confirm_password:
             raise serializers.ValidationError({"confirm_password" : "Confirm Password is required"})

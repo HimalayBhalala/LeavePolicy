@@ -5,6 +5,7 @@ from .models import *
 from .serializers import *
 from rest_framework_simplejwt.tokens import RefreshToken
 from functionality.LeaveView import BaseAPIView
+from rest_framework.views import APIView
 
 # Create your views here.
 
@@ -17,12 +18,12 @@ def get_token_for_user(user):
         "refresh_token":str(token)
     }
 
-class RegisterView(BaseAPIView):
+class RegisterView(APIView):
             
     def post(self,request,*args,**kwargs):
-        serializer_data = UserSerializer(data=request.data)
         try:
-            if serializer_data.is_valid():
+            serializer_data = UserSerializer(data=request.data)
+            if serializer_data.is_valid(raise_exception=True):
 
                 user = serializer_data.save()
                 token = get_token_for_user(user)
@@ -33,9 +34,12 @@ class RegisterView(BaseAPIView):
                     "token" : token,
                     "status" : status.HTTP_201_CREATED
                 },status=status.HTTP_201_CREATED)
-        
+            
         except Exception as e:
-            return Response
+            return Response({
+                "message":serializer_data.errors,
+                "status":status.HTTP_400_BAD_REQUEST
+            },status=status.HTTP_400_BAD_REQUEST)
             
 class LoginView(BaseAPIView):
         

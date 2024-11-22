@@ -10,9 +10,16 @@ LEAVE_STATUS = (
     ('rejected','Rejected')
 )
 
+LEAVE_RULE_STATUS = (
+    ('active','Active'),
+    ('disable','Disable')
+)
+
+
 class LeaveType(models.Model):
     user = models.ForeignKey(User,on_delete=models.SET_NULL,null=True,blank=True)
     name = models.CharField(max_length=50)
+    status = models.CharField(max_length=8,choices=LEAVE_RULE_STATUS,default='active')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -28,6 +35,7 @@ class LeaveReason(models.Model):
     user = models.ForeignKey(User,on_delete=models.SET_NULL,null=True,blank=True)
     leave_type = models.ForeignKey(LeaveType,on_delete=models.CASCADE)
     reason = models.CharField(max_length=200)
+    status = models.CharField(max_length=8,choices=LEAVE_RULE_STATUS,default='active')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -43,6 +51,7 @@ class LeaveRule(models.Model):
     user = models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
     days = models.IntegerField()
     role = models.CharField(choices=ROLE_CHOOSES)
+    status = models.CharField(max_length=8,choices=LEAVE_RULE_STATUS,default='active')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
