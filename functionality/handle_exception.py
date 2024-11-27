@@ -7,6 +7,7 @@ def handle_internal_server_exception(fun):
     def get_exception(*args, **kwargs):
         try:
             return fun(*args, **kwargs)
+        
         except Exception as e:
             return Response({
                 "message":str(e),

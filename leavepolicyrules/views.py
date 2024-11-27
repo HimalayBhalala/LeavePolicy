@@ -151,7 +151,7 @@ class GetAllLeaveTypeView(BaseAPIView):
     """ Get a all Leave Type"""
 
     def get(self,request,*args, **kwargs):
-        data = LeaveType.objects.filter(status=True).order_by('name')
+        data = LeaveType.objects.filter(status=True).order_by('-id')
         serialize_data = LeaveTypeSerializer(data,many=True)
         return Response({
             "message":"Leave Type getted successfully....",
@@ -308,7 +308,7 @@ class GetAllLeaveReasonView(BaseAPIView):
     """ Get a all Leave Reason"""
 
     def get(self,request,*args, **kwargs):
-        data = LeaveReason.objects.filter(status=True).order_by('reason')
+        data = LeaveReason.objects.filter(status=True).order_by('-id')
         serialize_data = LeaveReasonSerializer(data,many=True)
         return Response({
             "message":"Leave Reason getted successfully....",
@@ -459,7 +459,7 @@ class GetAllLeaveRuleView(BaseAPIView):
     """ Get a all Leave Rules"""
 
     def get(self,request,*args, **kwargs):
-        data = LeaveRule.objects.filter(status=True).order_by('days')
+        data = LeaveRule.objects.filter(status=True).order_by('-id')
         serialize_data = LeaveRuleSerializer(data,many=True)
         return Response({
             "message":"Leave Rule getted successfully....",

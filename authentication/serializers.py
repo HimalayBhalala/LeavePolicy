@@ -15,11 +15,6 @@ class UserSerializer(serializers.ModelSerializer):
         confirm_password = attrs.get('confirm_password')
         email = attrs.get('email')
 
-        get_user = User.objects.filter(email=email)
-
-        if get_user.exists():
-            return Response({"message":"User already exist with a given email"})
-
         if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$', password):        
             raise serializers.ValidationError({"password":"Password contains atleast 8 digits with a atleast one char, one digit and one special symbol"})
 
@@ -41,5 +36,6 @@ class UserSerializer(serializers.ModelSerializer):
             user.is_staff = True
         elif user.role == 'hr':
             user.is_staff=True
+            
         user.save()
         return user

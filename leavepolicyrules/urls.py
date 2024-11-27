@@ -15,7 +15,6 @@ urlpatterns = [
     path('leave-reason/<int:pk>/', views.LeaveReasonView.as_view(), name='get-edit-delete-reason'),
     path('leave-reason/change-status/', views.ChangeLeaveReasonStatus.as_view(),name='leave-reason-status'),
 
-
     # Leave-Rule Functionality
     path('leave-rule/', views.LeaveRuleView.as_view(), name='leave-rule'),
     path('get-rules/', views.GetAllLeaveRuleView.as_view(), name='get-reule'),

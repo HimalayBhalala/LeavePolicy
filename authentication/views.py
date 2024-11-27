@@ -1,10 +1,10 @@
-from django.shortcuts import render
 from rest_framework import status
 from rest_framework.response import Response
 from .models import *
 from .serializers import *
 from rest_framework_simplejwt.tokens import RefreshToken
 from functionality.LeaveView import BaseAPIView
+from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
 
 # Create your views here.
@@ -18,7 +18,7 @@ def get_token_for_user(user):
         "refresh_token":str(token)
     }
 
-class RegisterView(APIView):
+class RegisterView(BaseAPIView):
             
     def post(self,request,*args,**kwargs):
         try:
@@ -35,37 +35,37 @@ class RegisterView(APIView):
                     "status" : status.HTTP_201_CREATED
                 },status=status.HTTP_201_CREATED)
             
-        except Exception as e:
+        except ValidationError as e:
             return Response({
-                "message":serializer_data.errors,
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
+                "message": e.detail,
+                "status": status.HTTP_400_BAD_REQUEST
+            }, status=status.HTTP_400_BAD_REQUEST)
             
 class LoginView(BaseAPIView):
         
-    def get(self,request, *args, **kwargs):
+    def post(self,request, *args, **kwargs):
         
         email = request.data.get('email')
         password = request.data.get('password')
         role = request.data.get('role')
           
         serializer_data = UserSerializer(request.data)
-        
             
         user = User.objects.filter(email=email).first()
-        
-        if not role or user.role != role:
-            return Response({
-                "message":"Given role is not exists for user",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
         
         if not user:
             return Response({
                 "message":"User Not Found",
                 "data":[],
                 "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)    
+            },status=status.HTTP_400_BAD_REQUEST)  
+          
+        if not role or user.role != role:
+            return Response({
+                "message":"Given role is not exists for user",
+                "status":status.HTTP_400_BAD_REQUEST
+            },status=status.HTTP_400_BAD_REQUEST)
+        
                         
         if user.check_password(password):
 

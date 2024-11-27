@@ -4,12 +4,6 @@ from authentication.models import ROLE_CHOOSES
 
 # Create your models here.
 
-LEAVE_STATUS = (
-    ('approved','Approved'),
-    ('pending','Pending'),
-    ('rejected','Rejected')
-)
-
 class LeaveType(models.Model):
     user = models.ForeignKey(User,on_delete=models.SET_NULL,null=True,blank=True)
     name = models.CharField(max_length=50)
