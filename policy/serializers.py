@@ -24,17 +24,6 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
         get_leave_reason = LeaveReason.objects.filter(id=leave_reason.id).first()
         get_leave_rule = LeaveRule.objects.filter(id=leave_rule.id).first()
         
-        if not start_date:
-            raise serializers.ValidationError({'start_date':"Start Date must be required"})
-
-        if not end_date:
-            raise serializers.ValidationError({'end_date':"End Date must be required"})
-        
-        get_leave_request = LeaveRequest.objects.filter(user=user,start_date__lte=end_date,end_date__gte=start_date).filter(Q(hr_status=1) | Q(admin_status=1))
-
-        if get_leave_request.exists():
-            raise serializers.ValidationError({"leave_request":"Leave Request already exists"})
-
         if not get_leave_reason.leave_type.id == get_leave_type.id:
             raise serializers.ValidationError({"leave_reason":"Leave reason is not exists in given leave_type"})    
 
@@ -45,7 +34,22 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
 
         if not get_leave_rule.role == user.role:
             raise serializers.ValidationError({"rule":"Add a right rule"})
+        
+        if not start_date:
+            raise serializers.ValidationError({'start_date':"Start Date must be required"})
 
+        if not end_date:
+            raise serializers.ValidationError({'end_date':"End Date must be required"})
+
+        get_leave_request_approved = LeaveRequest.objects.filter(user=user,start_date__lte=end_date,end_date__gte=start_date).filter(Q(hr_status=1) | Q(admin_status=1))
+
+        if get_leave_request_approved.exists():
+            raise serializers.ValidationError({"leave_request":"Your Leave Request is already approved"})
+        
+        get_leave_request = LeaveRequest.objects.filter(user=user,start_date__lte=end_date,end_date__gte=start_date)
+        if get_leave_request.exists():
+            raise serializers.ValidationError({"leave_request":"Leave Request already exists"})
+        
         leave_request_date = date.today() + timedelta(days=get_leave_rule.days)
         if (get_leave_rule.role == user.role) and (leave_request_date > start_date):
             raise serializers.ValidationError({"leave_request":"You have not able to get a leave because your request days is over"})

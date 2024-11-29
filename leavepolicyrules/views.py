@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework import status
 from functionality.jwt_authentication import JWTAuthentication
 from rest_framework.response import Response
@@ -6,21 +5,17 @@ from .models import *
 from .serializers import *
 from functionality.LeaveView import BaseAPIView
 from functionality.jsonrenderers import LeaveJsonRenderer
+from functionality.permission import HrOrAdmin
 
 # Leave Type Views
 class LeaveTypeView(BaseAPIView):
 
+    permission_classes = [JWTAuthentication,HrOrAdmin]
     renderer_classes = [LeaveJsonRenderer]
-    permission_classes = [JWTAuthentication]
 
     def post(self,request,*args, **kwargs):
 
         user = request.user
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
 
         serializer_data = LeaveTypeSerializer(data=request.data,context={'user':user})
 
@@ -34,20 +29,14 @@ class LeaveTypeView(BaseAPIView):
             },status=status.HTTP_201_CREATED)
     
     def put(self,request,*args, **kwargs):
+        user = request.user
+
         id = self.kwargs.get('pk',None)
         if not id:
             return Response({
                 "message":"Id is required in URl",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
-        user = request.user
-
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-
 
         get_data = LeaveType.objects.filter(user=user,id=id,status=True).first()
 
@@ -71,21 +60,14 @@ class LeaveTypeView(BaseAPIView):
      
     def delete(self,request,*args, **kwargs):
 
+        user = request.user
+ 
         id = self.kwargs.get('pk',None)
         if not id:
             return Response({
                 "message":"Id is required in URl",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)        
-        
-        user = request.user
-      
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-
 
         get_data = LeaveType.objects.filter(user=user,id=id).first()
 
@@ -106,21 +88,13 @@ class LeaveTypeView(BaseAPIView):
     
 class ChangeLeaveTypeStatus(BaseAPIView):
 
-    permission_classes = [JWTAuthentication]
+    permission_classes = [JWTAuthentication,HrOrAdmin]
     renderer_classes = [LeaveJsonRenderer]
 
     def put(self,request,*args, **kwargs):
         user = request.user
 
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-
-
         id = request.data.get('id')
-
         if not id:
             return Response({
                 "message":"LeaveType ID must be required",
@@ -146,9 +120,9 @@ class ChangeLeaveTypeStatus(BaseAPIView):
 
 
 class GetAllLeaveTypeView(BaseAPIView):
+    """ Get a all Leave Type"""
 
     renderer_classes = [LeaveJsonRenderer]
-    """ Get a all Leave Type"""
 
     def get(self,request,*args, **kwargs):
         data = LeaveType.objects.filter(status=True).order_by('-id')
@@ -164,18 +138,11 @@ class GetAllLeaveTypeView(BaseAPIView):
 
 class LeaveReasonView(BaseAPIView):
 
+    permission_classes = [JWTAuthentication,HrOrAdmin]
     renderer_classes = [LeaveJsonRenderer]
-    permission_classes = [JWTAuthentication]
 
     def post(self,request,*args, **kwargs):
         user = request.user
-
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-
 
         serializer_data = LeaveReasonSerializer(data=request.data,context={'user':user})
         if serializer_data.is_valid():
@@ -189,18 +156,12 @@ class LeaveReasonView(BaseAPIView):
 
 
     def put(self,request,*args, **kwargs):
+        user = request.user
+
         id = self.kwargs.get('pk',None)
         if not id:
             return Response({
                 "message":"Id is required in URl",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-        
-        user = request.user
-
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
 
@@ -223,20 +184,13 @@ class LeaveReasonView(BaseAPIView):
             },status=status.HTTP_200_OK)
 
     def delete(self,request,*args, **kwargs):
+        user = request.user
 
         id = self.kwargs.get('pk',None)
         
         if not id:
             return Response({
                 "message":"Id is required in URl",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-        
-        user = request.user
-
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
 
@@ -260,21 +214,13 @@ class LeaveReasonView(BaseAPIView):
 
 class ChangeLeaveReasonStatus(BaseAPIView):
 
-    permission_classes = [JWTAuthentication]
+    permission_classes = [JWTAuthentication,HrOrAdmin]
     renderer_classes = [LeaveJsonRenderer]
 
     def put(self,request,*args, **kwargs):
         user = request.user
 
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-
-
         id = request.data.get('id')
-
         if not id:
             return Response({
                 "message":"LeaveReason ID must be required",
@@ -282,7 +228,6 @@ class ChangeLeaveReasonStatus(BaseAPIView):
             },status=status.HTTP_400_BAD_REQUEST)
         
         get_leave_reason = LeaveReason.objects.filter(user=user,id=id).first()
-        
         if not get_leave_reason:
             return Response({
                 "message":"No data found with enter leave_reason id",
@@ -300,12 +245,10 @@ class ChangeLeaveReasonStatus(BaseAPIView):
             },status=status.HTTP_200_OK)
         
 
-    
 class GetAllLeaveReasonView(BaseAPIView):
+    """ Get a all Leave Reason"""
 
     renderer_classes = [LeaveJsonRenderer]
-
-    """ Get a all Leave Reason"""
 
     def get(self,request,*args, **kwargs):
         data = LeaveReason.objects.filter(status=True).order_by('-id')
@@ -319,22 +262,15 @@ class GetAllLeaveReasonView(BaseAPIView):
 # Leave Rule Views
 class LeaveRuleView(BaseAPIView):
 
+    permission_classes = [JWTAuthentication,HrOrAdmin]
     renderer_classes = [LeaveJsonRenderer]
-    permission_classes = [JWTAuthentication]
 
     def post(self,request,*args, **kwargs):
         user = request.user
-
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
             
         serializer_data = LeaveRuleSerializer(data=request.data,context={'user':user})
         if serializer_data.is_valid():
             serializer_data.save()
-
             return Response({
                 "message" : "LeaveRule Added Successfully...",
                 "data":serializer_data.data,
@@ -342,17 +278,12 @@ class LeaveRuleView(BaseAPIView):
             },status=status.HTTP_201_CREATED)
 
     def put(self,request,*args, **kwargs):
+        user = request.user
+
         id = self.kwargs.get('pk',None)
         if not id:
             return Response({
                 "message":"Id is required in URl",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-        user = request.user
-
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
         
@@ -367,7 +298,6 @@ class LeaveRuleView(BaseAPIView):
         serializer_data = LeaveRuleSerializer(get_data,data=request.data,partial=True)
         if serializer_data.is_valid():
             serializer_data.save()
-
             return Response({
                 "message":"Leave Rule updated Successfully...",
                 "data":serializer_data.data,
@@ -376,23 +306,15 @@ class LeaveRuleView(BaseAPIView):
 
 
     def delete(self,request,*args, **kwargs):
+        user = request.user
 
         id = self.kwargs.get('pk',None)
-        
         if not id:
             return Response({
                 "message":"Id is required in URl",
                 "status":status.HTTP_400_BAD_REQUEST
             },status=status.HTTP_400_BAD_REQUEST)
         
-        user = request.user
-
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-
         get_data = LeaveRule.objects.filter(user=user,id=id).first()
 
         if not get_data:
@@ -413,21 +335,13 @@ class LeaveRuleView(BaseAPIView):
 
 class ChangeLeaveRuleStatus(BaseAPIView):
 
-    permission_classes = [JWTAuthentication]
+    permission_classes = [JWTAuthentication,HrOrAdmin]
     renderer_classes = [LeaveJsonRenderer]
 
     def put(self,request,*args, **kwargs):
         user = request.user
 
-        if not user.role in ['admin','hr']:
-            return Response({
-                "message":"Only admin and Hr can be able to update a leave status",
-                "status":status.HTTP_400_BAD_REQUEST
-            },status=status.HTTP_400_BAD_REQUEST)
-
-
         id = request.data.get('id')
-
         if not id:
             return Response({
                 "message":"LeaveRule ID must be required",
@@ -435,7 +349,6 @@ class ChangeLeaveRuleStatus(BaseAPIView):
             },status=status.HTTP_400_BAD_REQUEST)
         
         get_leave_rule = LeaveRule.objects.filter(user=user,id=id).first()
-
         if not get_leave_rule:
             return Response({
                 "message":"No data found with enter leave_reason id",
@@ -443,20 +356,19 @@ class ChangeLeaveRuleStatus(BaseAPIView):
             },status=status.HTTP_400_BAD_REQUEST)
 
         serializer_data = LeaveRuleStatusSerializer(get_leave_rule,data=request.data,context={'user':user},partial=True)
-        if serializer_data.is_valid(raise_exception=True):
+        if serializer_data.is_valid():
             serializer_data.save()
             return Response({
                 "message":"LeaveRule Status Updated Successfully......",
                 "data":serializer_data.data,
                 "status":status.HTTP_200_OK
             },status=status.HTTP_200_OK)
-        
+
         
 class GetAllLeaveRuleView(BaseAPIView):
+    """ Get a all Leave Rules"""
 
     renderer_classes = [LeaveJsonRenderer]
-
-    """ Get a all Leave Rules"""
 
     def get(self,request,*args, **kwargs):
         data = LeaveRule.objects.filter(status=True).order_by('-id')
